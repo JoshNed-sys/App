@@ -1,0 +1,1239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aegean Table</title>
+<meta name="description" content="A personal tracker for weekly weight, lipid panel labs, and Mediterranean-diet habits.">
+
+<!-- PWA / installability -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#eef1e8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141d18" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aegean Table">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+
+<style>
+  :root{
+    color-scheme: light dark;
+    --ink:#22301f;
+    --ink-secondary:#57634e;
+    --ink-muted:#87927d;
+    --bg:#eef1e8;
+    --surface:#ffffff;
+    --surface-sunken:#e5e9db;
+    --line:#dbe0d0;
+    --accent:#1c6e75;
+    --accent-strong:#124f55;
+    --accent-wash:rgba(28,110,117,0.10);
+    --gold:#b9822a;
+    --gold-wash:rgba(185,130,42,0.14);
+    --good:#4c7a3d;
+    --good-wash:rgba(76,122,61,0.10);
+    --warn:#bb7a1f;
+    --warn-wash:rgba(187,122,31,0.12);
+    --critical:#ab4a34;
+    --critical-wash:rgba(171,74,52,0.10);
+    --shadow: 0 1px 2px rgba(34,48,31,0.06), 0 6px 20px -8px rgba(34,48,31,0.16);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9ede1;
+      --ink-secondary:#b7c0a8;
+      --ink-muted:#7e8b71;
+      --bg:#141d18;
+      --surface:#1b2620;
+      --surface-sunken:#111811;
+      --line:#31402f;
+      --accent:#57b9bd;
+      --accent-strong:#8fd6d6;
+      --accent-wash:rgba(87,185,189,0.14);
+      --gold:#e0aa4d;
+      --gold-wash:rgba(224,170,77,0.14);
+      --good:#82bd6f;
+      --good-wash:rgba(130,189,111,0.12);
+      --warn:#e0aa4d;
+      --warn-wash:rgba(224,170,77,0.14);
+      --critical:#e0876f;
+      --critical-wash:rgba(224,135,111,0.12);
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 26px -10px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9ede1;
+    --ink-secondary:#b7c0a8;
+    --ink-muted:#7e8b71;
+    --bg:#141d18;
+    --surface:#1b2620;
+    --surface-sunken:#111811;
+    --line:#31402f;
+    --accent:#57b9bd;
+    --accent-strong:#8fd6d6;
+    --accent-wash:rgba(87,185,189,0.14);
+    --gold:#e0aa4d;
+    --gold-wash:rgba(224,170,77,0.14);
+    --good:#82bd6f;
+    --good-wash:rgba(130,189,111,0.12);
+    --warn:#e0aa4d;
+    --warn-wash:rgba(224,170,77,0.14);
+    --critical:#e0876f;
+    --critical-wash:rgba(224,135,111,0.12);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 26px -10px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{ background:var(--bg); }
+  body{
+    margin:0;
+    color:var(--ink);
+    font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  h1,h2,h3{
+    font-family:"Fraunces", Georgia, serif;
+    font-weight:600;
+    text-wrap:balance;
+    margin:0;
+    color:var(--ink);
+  }
+  .mono{ font-family:"Space Mono", ui-monospace, monospace; }
+  .tabular{ font-variant-numeric: tabular-nums; }
+  button{ font-family:inherit; }
+  a{ color:var(--accent-strong); }
+
+  .shell{
+    max-width:1080px;
+    margin:0 auto;
+    padding-inline:20px;
+    padding-block:28px 64px;
+  }
+
+  header.top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .mark{
+    width:40px;height:40px;border-radius:11px;
+    background:
+      radial-gradient(circle at 30% 30%, var(--gold) 0 34%, transparent 35%),
+      linear-gradient(135deg, var(--accent), var(--accent-strong));
+    flex:none;
+  }
+  .brand h1{ font-size:26px; letter-spacing:-0.01em; }
+  .brand .tag{ font-size:12.5px; color:var(--ink-secondary); margin-top:2px; }
+  .top-right{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .today{
+    font-family:"Space Mono", monospace;
+    font-size:12.5px;
+    color:var(--ink-secondary);
+    background:var(--surface);
+    border:1px solid var(--line);
+    padding:6px 10px;
+    border-radius:8px;
+  }
+  .icon-btn{
+    appearance:none;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--ink-secondary);
+    font-size:12.5px;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-family:"Work Sans", sans-serif;
+  }
+  .icon-btn:hover{ color:var(--ink); border-color:var(--ink-muted); }
+
+  nav.tabs{
+    display:flex;
+    gap:4px;
+    background:var(--surface-sunken);
+    padding:4px;
+    border-radius:12px;
+    margin-bottom:24px;
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    appearance:none;border:none;background:transparent;
+    color:var(--ink-secondary);
+    font-size:14px; font-weight:600;
+    padding:9px 16px;
+    border-radius:9px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  nav.tabs button:hover{ color:var(--ink); }
+  nav.tabs button.active{
+    background:var(--surface);
+    color:var(--ink);
+    box-shadow:var(--shadow);
+  }
+  nav.tabs button:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+
+  .view{ display:none; flex-direction:column; gap:20px; }
+  .view.active{ display:flex; }
+
+  .stat-row{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
+    gap:12px;
+  }
+  .stat-tile{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 16px 14px;
+    display:flex;flex-direction:column;gap:6px;
+    min-width:0;
+  }
+  .stat-tile .label{ font-size:12px; color:var(--ink-secondary); font-weight:500; }
+  .stat-tile .value{ font-size:26px; font-weight:600; letter-spacing:-0.01em; }
+  .stat-tile .value small{ font-size:14px; font-weight:500; color:var(--ink-secondary); }
+  .stat-tile .delta{ font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:4px; }
+  .delta.good{ color:var(--good); } .delta.bad{ color:var(--critical); } .delta.flat{ color:var(--ink-muted); }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    box-shadow:var(--shadow);
+  }
+  .card-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    margin-bottom:14px; flex-wrap:wrap;
+  }
+  .card-head h2{ font-size:19px; }
+  .card-head .sub{ font-size:12.5px; color:var(--ink-secondary); }
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; }
+  @media (max-width:760px){ .grid-2{ grid-template-columns:1fr; } }
+
+  .empty{
+    text-align:center;
+    padding:34px 16px;
+    color:var(--ink-secondary);
+    font-size:14px;
+  }
+  .empty .big{ font-size:34px; margin-bottom:6px; }
+
+  .field-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field label{ font-size:12px; color:var(--ink-secondary); font-weight:500; }
+  .field input, .field select{
+    font-size:14px;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--ink);
+    min-width:0;
+  }
+  .btn{
+    appearance:none;border:none;
+    background:var(--accent);
+    color:#fbfdf9;
+    font-weight:600;
+    font-size:14px;
+    padding:9px 16px;
+    border-radius:9px;
+    cursor:pointer;
+  }
+  .btn:hover{ background:var(--accent-strong); }
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink-secondary);
+    border:1px solid var(--line);
+  }
+  .btn.ghost:hover{ color:var(--ink); border-color:var(--ink-muted); }
+  .btn.danger{ background:transparent; color:var(--critical); border:1px solid transparent; padding:6px 8px; font-size:12.5px; }
+  .btn.danger:hover{ background:var(--critical-wash); }
+
+  table.log{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.log th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em;
+    color:var(--ink-muted); font-weight:600; padding:0 10px 8px; border-bottom:1px solid var(--line);
+  }
+  table.log td{ padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.log tbody tr:last-child td{ border-bottom:none; }
+  table.log td.num{ font-variant-numeric:tabular-nums; }
+  .table-wrap{ overflow-x:auto; }
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; font-weight:600; padding:3px 8px; border-radius:99px;
+  }
+  .pill.good{ background:var(--good-wash); color:var(--good); }
+  .pill.warn{ background:var(--warn-wash); color:var(--warn); }
+  .pill.critical{ background:var(--critical-wash); color:var(--critical); }
+  .pill.neutral{ background:var(--surface-sunken); color:var(--ink-secondary); }
+
+  .chart-wrap{ position:relative; }
+  svg.chart{ display:block; width:100%; height:auto; overflow:visible; }
+  .axis-label{ font-size:10.5px; fill:var(--ink-muted); font-family:"Work Sans",sans-serif; }
+  .grid-line{ stroke:var(--line); stroke-width:1; }
+  .goal-line{ stroke:var(--ink-muted); stroke-width:1.4; stroke-dasharray:4 4; }
+  .end-label{ font-size:12.5px; font-weight:600; fill:var(--ink); font-family:"Work Sans",sans-serif; }
+  .crosshair{ stroke:var(--ink-muted); stroke-width:1; }
+  .tooltip-box{
+    position:absolute; pointer-events:none;
+    background:var(--ink); color:var(--bg);
+    font-size:12px; padding:7px 10px; border-radius:8px;
+    transform:translate(-50%,-115%);
+    white-space:nowrap;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    opacity:0; transition:opacity 0.08s ease;
+    z-index:5;
+  }
+  .tooltip-box .t-val{ font-weight:700; font-variant-numeric:tabular-nums; }
+  .tooltip-box .t-sub{ opacity:0.75; font-size:11px; }
+
+  .mini-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    gap:14px;
+  }
+  .mini-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 14px 8px;
+  }
+  .mini-card .mini-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .mini-card .mini-title{ font-size:13px; font-weight:600; }
+  .mini-card .mini-value{ font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .mini-card .mini-range{ font-size:11px; color:var(--ink-muted); margin-top:2px; }
+
+  .checklist{ display:flex; flex-direction:column; gap:2px; }
+  .check-item{
+    display:flex; align-items:center; gap:11px;
+    padding:9px 6px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .check-item:last-child{ border-bottom:none; }
+  .check-item input{ width:18px;height:18px; accent-color:var(--accent); flex:none; cursor:pointer; }
+  .check-item .ci-text{ display:flex; flex-direction:column; gap:1px; }
+  .check-item .ci-title{ font-size:14px; font-weight:500; }
+  .check-item .ci-sub{ font-size:12px; color:var(--ink-muted); }
+  .score-ring-row{ display:flex; align-items:center; gap:16px; }
+  .score-big{ font-size:34px; font-weight:700; font-family:"Fraunces",serif; }
+  .score-big small{ font-size:15px; font-family:"Work Sans",sans-serif; font-weight:500; color:var(--ink-secondary); }
+
+  .bars-chart{ display:flex; align-items:flex-end; gap:10px; height:120px; padding-top:20px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+  .bar-col .cap{ font-size:10.5px; font-weight:700; color:var(--ink-secondary); font-variant-numeric:tabular-nums; }
+  .bar-col .bar{ width:100%; max-width:26px; border-radius:5px 5px 2px 2px; background:var(--accent); }
+  .bar-col .bar.today{ background:var(--gold); }
+  .bar-col .day-lbl{ font-size:10.5px; color:var(--ink-muted); }
+
+  .note{ font-size:12.5px; color:var(--ink-muted); line-height:1.5; }
+  .banner{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--gold-wash); border:1px solid transparent;
+    color:var(--ink); padding:11px 14px; border-radius:10px; font-size:13px;
+  }
+  .banner b{ color:var(--gold); }
+
+  footer.disclaimer{
+    margin-top:36px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:11.5px; color:var(--ink-muted); line-height:1.6;
+  }
+
+  /* backup modal */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.4);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:50;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal-card{
+    background:var(--surface); border-radius:16px; padding:22px;
+    max-width:400px; width:100%; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .modal-card h2{ font-size:19px; }
+  .modal-card p{ font-size:13px; color:var(--ink-secondary); line-height:1.5; margin:0; }
+  .modal-actions{ display:flex; flex-direction:column; gap:8px; }
+  .modal-close{ align-self:flex-end; }
+
+  @media (max-width:460px){
+    .shell{ padding-inline:16px; }
+    .brand h1{ font-size:21px; }
+    .score-big{ font-size:28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"></div>
+      <div>
+        <h1>Aegean Table</h1>
+        <div class="tag">Weight &amp; lab tracking, built around the Mediterranean plate</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <button class="icon-btn" id="openBackup" type="button">Backup</button>
+      <div class="today mono" id="todayLabel">—</div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="active" data-view="overview" role="tab" aria-selected="true">Overview</button>
+    <button data-view="weight" role="tab" aria-selected="false">Weight</button>
+    <button data-view="labs" role="tab" aria-selected="false">Labs</button>
+    <button data-view="diet" role="tab" aria-selected="false">Diet log</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <section class="view active" id="view-overview">
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h2>Weight trend</h2>
+          <span class="sub" id="weightTrendSub">—</span>
+        </div>
+        <div id="weightChartHost"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Today's Mediterranean check-in</h2>
+          <span class="sub mono" id="overviewTodayDate">—</span>
+        </div>
+        <div id="overviewChecklistHost"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Latest labs</h2>
+        <span class="sub">Standard adult reference ranges shown for context</span>
+      </div>
+      <div id="overviewLabsHost" class="mini-grid"></div>
+    </div>
+  </section>
+
+  <!-- WEIGHT -->
+  <section class="view" id="view-weight">
+    <div class="card">
+      <div class="card-head">
+        <h2>Log a weigh-in</h2>
+        <span class="sub">One entry per week works well</span>
+      </div>
+      <form id="weightForm" class="field-row">
+        <div class="field">
+          <label for="wDate">Date</label>
+          <input type="date" id="wDate" required>
+        </div>
+        <div class="field">
+          <label for="wWeight">Weight (lbs)</label>
+          <input type="number" id="wWeight" step="0.1" min="0" placeholder="182.4" required>
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+          <label for="wNote">Note (optional)</label>
+          <input type="text" id="wNote" placeholder="e.g. after vacation">
+        </div>
+        <button class="btn" type="submit">Save entry</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Full trend</h2>
+        <span class="sub" id="weightFullSub">—</span>
+      </div>
+      <div id="weightChartHostFull"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Weigh-in history</h2>
+        <div class="field-row" style="gap:8px;">
+          <div class="field">
+            <label for="goalWeight">Goal weight (lbs)</label>
+            <input type="number" id="goalWeight" step="0.1" min="0" placeholder="none set" style="max-width:110px;">
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="log" id="weightTable">
+        <thead><tr><th>Date</th><th>Weight</th><th>Change</th><th>Note</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="empty" id="weightEmpty" style="display:none;">
+        <div class="big">🫒</div>
+        Nothing logged yet — add this week's weigh-in above.
+      </div>
+    </div>
+  </section>
+
+  <!-- LABS -->
+  <section class="view" id="view-labs">
+    <div class="card">
+      <div class="card-head">
+        <h2>Log lab results</h2>
+        <span class="sub">From your lipid panel, in mg/dL</span>
+      </div>
+      <form id="labForm" class="field-row">
+        <div class="field">
+          <label for="lDate">Draw date</label>
+          <input type="date" id="lDate" required>
+        </div>
+        <div class="field">
+          <label for="lTotal">Total cholesterol</label>
+          <input type="number" id="lTotal" min="0" placeholder="185">
+        </div>
+        <div class="field">
+          <label for="lLdl">LDL</label>
+          <input type="number" id="lLdl" min="0" placeholder="105">
+        </div>
+        <div class="field">
+          <label for="lHdl">HDL</label>
+          <input type="number" id="lHdl" min="0" placeholder="52">
+        </div>
+        <div class="field">
+          <label for="lTrig">Triglycerides</label>
+          <input type="number" id="lTrig" min="0" placeholder="120">
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+          <label for="lNote">Note (optional)</label>
+          <input type="text" id="lNote" placeholder="e.g. fasting, annual physical">
+        </div>
+        <button class="btn" type="submit">Save results</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Lab trends</h2>
+        <span class="sub">Shaded band = general reference range, not a personal target</span>
+      </div>
+      <div id="labChartsHost" class="mini-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Lab history</h2></div>
+      <div class="table-wrap"><table class="log" id="labTable">
+        <thead><tr><th>Date</th><th>Total</th><th>LDL</th><th>HDL</th><th>Trig.</th><th>Note</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="empty" id="labEmpty" style="display:none;">
+        <div class="big">🩸</div>
+        No lab draws logged yet — add your most recent panel above.
+      </div>
+    </div>
+  </section>
+
+  <!-- DIET -->
+  <section class="view" id="view-diet">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h2>Daily checklist</h2>
+          <input type="date" id="dDate" class="mono" style="font-size:12.5px;padding:5px 8px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);">
+        </div>
+        <div id="dietChecklistHost"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>Last 7 days</h2>
+          <span class="sub" id="weekAvgSub">—</span>
+        </div>
+        <div id="weekBarsHost"></div>
+        <p class="note" style="margin-top:10px;">Score = number of Mediterranean habits checked out of 9, each day.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Checklist history</h2></div>
+      <div class="table-wrap"><table class="log" id="dietTable">
+        <thead><tr><th>Date</th><th>Score</th><th>Habits met</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="empty" id="dietEmpty" style="display:none;">
+        <div class="big">🌿</div>
+        No days logged yet — check off today's habits to start your streak.
+      </div>
+    </div>
+  </section>
+
+  <footer class="disclaimer">
+    Aegean Table is a personal tracking tool, not medical advice. Lab reference ranges shown are general adult guidelines
+    and vary by lab, sex, and individual health history — always interpret your results with your doctor. If you're
+    changing your diet to manage cholesterol or another condition, loop in your care team.
+    <br><br>
+    Your entries are stored only in this browser, on this device (nothing is sent anywhere). Use Backup above to save a
+    copy or move your data to another phone.
+  </footer>
+</div>
+
+<div class="modal-overlay" id="backupModal" hidden>
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <h2>Backup your data</h2>
+    </div>
+    <p>Everything you log is saved only in this browser's local storage — it doesn't sync anywhere on its own. Export a
+      backup file periodically, or to move your entries to a new phone.</p>
+    <div class="modal-actions">
+      <button class="btn" id="exportBtn" type="button">Export backup (.json)</button>
+      <button class="btn ghost" id="importBtn" type="button">Import backup</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="btn danger" id="resetBtn" type="button" style="align-self:flex-start;">Erase all data on this device</button>
+    </div>
+    <button class="btn ghost modal-close" id="closeBackup" type="button">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- constants ---------- */
+  var CHECK_ITEMS = [
+    { key:"veg",     title:"Vegetables",            sub:"2+ servings, any style" },
+    { key:"fruit",   title:"Fruit",                 sub:"1–2 servings, fresh" },
+    { key:"grains",  title:"Whole grains",          sub:"whole wheat, farro, oats, brown rice" },
+    { key:"oil",     title:"Olive oil as main fat",  sub:"instead of butter or refined oils" },
+    { key:"fish",    title:"Fish or seafood",       sub:"today's protein" },
+    { key:"legumes", title:"Legumes or nuts",       sub:"beans, lentils, chickpeas, almonds" },
+    { key:"dairy",   title:"Modest dairy",          sub:"yogurt or cheese, not a main course" },
+    { key:"redmeat", title:"Little to no red meat", sub:"skipped it today" },
+    { key:"sweets",  title:"Little to no added sugar", sub:"water or herbal tea over soda" }
+  ];
+  var LAB_META = {
+    total: { label:"Total cholesterol", unit:"mg/dL", range:[0,200], rangeLabel:"< 200 desirable" },
+    ldl:   { label:"LDL",               unit:"mg/dL", range:[0,100], rangeLabel:"< 100 optimal" },
+    hdl:   { label:"HDL",               unit:"mg/dL", range:[60,200], rangeLabel:"> 60 protective", invert:true },
+    trig:  { label:"Triglycerides",     unit:"mg/dL", range:[0,150], rangeLabel:"< 150 normal" }
+  };
+  var LAB_KEYS = ["total","ldl","hdl","trig"];
+  var STORAGE_KEY = "aegeanTable:v1";
+
+  /* ---------- state ---------- */
+  var state = {
+    profile: { goalWeight:null },
+    weight: [],   // {id,date,weight,note}
+    labs: [],     // {id,date,total,ldl,hdl,trig,note}
+    diet: {}      // date -> {date,checklist:{},score}
+  };
+
+  function todayISO(){
+    var d = new Date();
+    var tz = d.getTimezoneOffset();
+    var local = new Date(d.getTime() - tz*60000);
+    return local.toISOString().slice(0,10);
+  }
+  function fmtDate(iso){
+    var d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" });
+  }
+  function fmtDateShort(iso){
+    var d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString(undefined, { month:"short", day:"numeric" });
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  /* ---------- persistence: localStorage ---------- */
+  function loadState(){
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        state.profile = parsed.profile || { goalWeight:null };
+        state.weight = Array.isArray(parsed.weight) ? parsed.weight : [];
+        state.labs = Array.isArray(parsed.labs) ? parsed.labs : [];
+        state.diet = parsed.diet && typeof parsed.diet === "object" ? parsed.diet : {};
+      }
+    } catch(e){ console.warn("Could not read saved data", e); }
+  }
+  function saveState(){
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch(e){ console.warn("Could not save data", e); }
+  }
+
+  /* ---------- tabs ---------- */
+  function setupTabs(){
+    var buttons = document.querySelectorAll("nav.tabs button");
+    buttons.forEach(function(btn){
+      btn.addEventListener("click", function(){
+        buttons.forEach(function(b){ b.classList.remove("active"); b.setAttribute("aria-selected","false"); });
+        btn.classList.add("active"); btn.setAttribute("aria-selected","true");
+        document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+        document.getElementById("view-" + btn.dataset.view).classList.add("active");
+      });
+    });
+  }
+
+  /* ---------- SVG line chart (weight) ---------- */
+  function svgEl(tag, attrs){
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function renderWeightChart(hostId, subId){
+    var host = document.getElementById(hostId);
+    host.innerHTML = "";
+    var entries = state.weight.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    var subEl = subId ? document.getElementById(subId) : null;
+
+    if (entries.length === 0) {
+      host.innerHTML = '<div class="empty"><div class="big">📉</div>Add a weigh-in to see your trend line here.</div>';
+      if (subEl) subEl.textContent = "No entries yet";
+      return;
+    }
+    if (subEl) {
+      var first = entries[0], last = entries[entries.length-1];
+      var diff = (last.weight - first.weight);
+      var word = diff <= 0 ? "lost" : "gained";
+      subEl.textContent = entries.length + " entr" + (entries.length===1?"y":"ies") + " · " + Math.abs(diff).toFixed(1) + " lbs " + word + " since " + fmtDateShort(first.date);
+    }
+
+    var W = 640, H = 220, padL = 42, padR = 18, padT = 18, padB = 28;
+    var goal = state.profile.goalWeight;
+    var weights = entries.map(function(e){ return e.weight; });
+    var minW = Math.min.apply(null, weights.concat(goal ? [goal] : []));
+    var maxW = Math.max.apply(null, weights.concat(goal ? [goal] : []));
+    var pad = Math.max(2, (maxW - minW) * 0.15) || 5;
+    minW -= pad; maxW += pad;
+
+    var x = function(i){ return padL + (entries.length === 1 ? (W-padL-padR)/2 : (i/(entries.length-1)) * (W-padL-padR)); };
+    var y = function(v){ return padT + (1 - (v - minW)/(maxW - minW)) * (H - padT - padB); };
+
+    var svg = svgEl("svg", { class:"chart", viewBox:"0 0 " + W + " " + H, role:"img", "aria-label":"Weight trend line chart" });
+
+    var steps = 4;
+    for (var s=0; s<=steps; s++){
+      var v = minW + (maxW-minW)*(s/steps);
+      var gy = y(v);
+      svg.appendChild(svgEl("line", { class:"grid-line", x1:padL, x2:W-padR, y1:gy, y2:gy }));
+      var lbl = svgEl("text", { class:"axis-label", x:4, y:gy+3, "text-anchor":"start" });
+      lbl.textContent = v.toFixed(0);
+      svg.appendChild(lbl);
+    }
+
+    [0, Math.floor((entries.length-1)/2), entries.length-1].forEach(function(i, idx, arr){
+      if (idx>0 && arr[idx]===arr[idx-1]) return;
+      var lbl = svgEl("text", { class:"axis-label", x:x(i), y:H-6, "text-anchor": i===0?"start": (i===entries.length-1?"end":"middle") });
+      lbl.textContent = fmtDateShort(entries[i].date);
+      svg.appendChild(lbl);
+    });
+
+    if (goal){
+      var gyv = y(goal);
+      svg.appendChild(svgEl("line", { class:"goal-line", x1:padL, x2:W-padR, y1:gyv, y2:gyv }));
+      var glabel = svgEl("text", { class:"axis-label", x:W-padR, y:gyv-5, "text-anchor":"end" });
+      glabel.textContent = "Goal " + goal;
+      glabel.style.fill = "var(--ink-secondary)";
+      svg.appendChild(glabel);
+    }
+
+    var areaPts = entries.map(function(e,i){ return x(i) + "," + y(e.weight); }).join(" L ");
+    var areaPath = "M " + x(0) + "," + y(minW) + " L " + areaPts + " L " + x(entries.length-1) + "," + y(minW) + " Z";
+    svg.appendChild(svgEl("path", { d:areaPath, fill:"var(--accent)", opacity:"0.10", stroke:"none" }));
+
+    var linePts = entries.map(function(e,i){ return x(i) + "," + y(e.weight); }).join(" L ");
+    svg.appendChild(svgEl("path", { d:"M " + linePts, fill:"none", stroke:"var(--accent)", "stroke-width":"2", "stroke-linecap":"round", "stroke-linejoin":"round" }));
+
+    entries.forEach(function(e,i){
+      svg.appendChild(svgEl("circle", { cx:x(i), cy:y(e.weight), r:4.5, fill:"var(--accent)", stroke:"var(--surface)", "stroke-width":2 }));
+    });
+
+    var lastE = entries[entries.length-1];
+    var endLbl = svgEl("text", { class:"end-label", x:x(entries.length-1), y:y(lastE.weight)-12, "text-anchor":"end" });
+    endLbl.textContent = lastE.weight.toFixed(1) + " lbs";
+    svg.appendChild(endLbl);
+
+    var hoverLine = svgEl("line", { class:"crosshair", x1:0, x2:0, y1:padT, y2:H-padB, opacity:0 });
+    svg.appendChild(hoverLine);
+    var hoverDot = svgEl("circle", { r:5.5, fill:"var(--accent)", stroke:"var(--surface)", "stroke-width":2, opacity:0 });
+    svg.appendChild(hoverDot);
+
+    var wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+    var tip = document.createElement("div");
+    tip.className = "tooltip-box";
+    wrap.appendChild(tip);
+    host.appendChild(wrap);
+
+    function showTip(i){
+      var e = entries[i];
+      var prev = entries[i-1];
+      var delta = prev ? (e.weight - prev.weight) : null;
+      hoverLine.setAttribute("x1", x(i)); hoverLine.setAttribute("x2", x(i)); hoverLine.setAttribute("opacity", 1);
+      hoverDot.setAttribute("cx", x(i)); hoverDot.setAttribute("cy", y(e.weight)); hoverDot.setAttribute("opacity", 1);
+      tip.innerHTML = '<div class="t-val">' + e.weight.toFixed(1) + ' lbs</div>' +
+        '<div class="t-sub">' + fmtDate(e.date) + (delta!=null ? ' · ' + (delta>0?"+":"") + delta.toFixed(1) + ' vs prior' : '') + '</div>';
+      tip.style.left = ((x(i)/W) * 100) + "%";
+      tip.style.top = ((y(e.weight)/H) * 100) + "%";
+      tip.style.opacity = 1;
+    }
+    function hideTip(){ hoverLine.setAttribute("opacity",0); hoverDot.setAttribute("opacity",0); tip.style.opacity = 0; }
+
+    svg.addEventListener("pointermove", function(ev){
+      var rect = svg.getBoundingClientRect();
+      var relX = ((ev.clientX - rect.left) / rect.width) * W;
+      var closest = 0, bestDist = Infinity;
+      entries.forEach(function(e,i){ var d = Math.abs(x(i)-relX); if (d<bestDist){ bestDist=d; closest=i; } });
+      showTip(closest);
+    });
+    svg.addEventListener("pointerleave", hideTip);
+  }
+
+  /* ---------- mini lab chart ---------- */
+  function renderLabMini(container, key, entries){
+    var meta = LAB_META[key];
+    var vals = entries.map(function(e){ return e[key]; }).filter(function(v){ return v!=null && v!==""; });
+    var card = document.createElement("div");
+    card.className = "mini-card";
+    var latest = vals.length ? vals[vals.length-1] : null;
+    var status = "neutral";
+    if (latest != null) {
+      if (meta.invert) status = latest >= meta.range[0] ? "good" : "warn";
+      else status = latest <= meta.range[1] ? "good" : (latest <= meta.range[1]*1.15 ? "warn" : "critical");
+    }
+    card.innerHTML =
+      '<div class="mini-head"><span class="mini-title">' + meta.label + '</span>' +
+      '<span class="pill ' + status + '">' + (latest!=null ? latest + ' ' + meta.unit : "—") + '</span></div>' +
+      '<div class="mini-range">' + meta.rangeLabel + '</div>';
+
+    if (vals.length < 1) {
+      var e1 = document.createElement("div");
+      e1.className = "empty"; e1.style.padding = "18px 4px";
+      e1.textContent = "No data yet";
+      card.appendChild(e1);
+      container.appendChild(card);
+      return;
+    }
+
+    var withDates = entries.filter(function(e){ return e[key]!=null && e[key]!==""; });
+    var W=220, H=90, padL=6, padR=6, padT=10, padB=6;
+    var lo = Math.min(meta.range[0], Math.min.apply(null, vals));
+    var hi = Math.max(meta.range[1]*1.2, Math.max.apply(null, vals));
+    var x = function(i){ return withDates.length===1 ? W/2 : padL + (i/(withDates.length-1))*(W-padL-padR); };
+    var y = function(v){ return padT + (1-(v-lo)/(hi-lo))*(H-padT-padB); };
+
+    var svg = svgEl("svg", { class:"chart", viewBox:"0 0 " + W + " " + H, style:"margin-top:8px;", role:"img", "aria-label":meta.label + " trend" });
+
+    var bandTop = meta.invert ? y(hi) : y(meta.range[1]);
+    var bandBottom = meta.invert ? y(meta.range[0]) : y(lo);
+    svg.appendChild(svgEl("rect", { x:padL, y:Math.min(bandTop,bandBottom), width:W-padL-padR, height:Math.abs(bandBottom-bandTop), fill:"var(--good-wash)" }));
+
+    var linePts = withDates.map(function(e,i){ return x(i)+","+y(e[key]); }).join(" L ");
+    svg.appendChild(svgEl("path", { d:"M "+linePts, fill:"none", stroke:"var(--accent)", "stroke-width":2, "stroke-linecap":"round", "stroke-linejoin":"round" }));
+    withDates.forEach(function(e,i){
+      svg.appendChild(svgEl("circle", { cx:x(i), cy:y(e[key]), r:3.5, fill:"var(--accent)", stroke:"var(--surface)", "stroke-width":1.5 }));
+    });
+
+    var wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+    var tip = document.createElement("div"); tip.className = "tooltip-box"; wrap.appendChild(tip);
+    card.appendChild(wrap);
+    container.appendChild(card);
+
+    svg.addEventListener("pointermove", function(ev){
+      var rect = svg.getBoundingClientRect();
+      var relX = ((ev.clientX-rect.left)/rect.width) * W;
+      var closest=0, bestDist=Infinity;
+      withDates.forEach(function(e,i){ var d=Math.abs(x(i)-relX); if(d<bestDist){bestDist=d;closest=i;} });
+      var e = withDates[closest];
+      tip.innerHTML = '<div class="t-val">' + e[key] + ' ' + meta.unit + '</div><div class="t-sub">' + fmtDate(e.date) + '</div>';
+      tip.style.left = ((x(closest)/W)*100) + "%";
+      tip.style.top = ((y(e[key])/H)*100) + "%";
+      tip.style.opacity = 1;
+    });
+    svg.addEventListener("pointerleave", function(){ tip.style.opacity = 0; });
+  }
+
+  function renderLabCharts(){
+    var host = document.getElementById("labChartsHost");
+    host.innerHTML = "";
+    var entries = state.labs.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    LAB_KEYS.forEach(function(k){ renderLabMini(host, k, entries); });
+
+    var oHost = document.getElementById("overviewLabsHost");
+    oHost.innerHTML = "";
+    if (entries.length === 0) {
+      oHost.innerHTML = '<div class="empty" style="grid-column:1/-1;"><div class="big">🩺</div>No lab results yet — log your latest lipid panel in the Labs tab.</div>';
+    } else {
+      LAB_KEYS.forEach(function(k){ renderLabMini(oHost, k, entries); });
+    }
+  }
+
+  /* ---------- diet checklist ---------- */
+  function scoreFor(checklist){
+    var n = 0;
+    CHECK_ITEMS.forEach(function(it){ if (checklist && checklist[it.key]) n++; });
+    return n;
+  }
+
+  function renderChecklist(hostEl, dateIso){
+    hostEl.innerHTML = "";
+    var day = state.diet[dateIso] || { date:dateIso, checklist:{}, score:0 };
+    var wrap = document.createElement("div");
+    var scoreRow = document.createElement("div");
+    scoreRow.className = "score-ring-row";
+    scoreRow.style.marginBottom = "10px";
+    scoreRow.innerHTML = '<div class="score-big">' + day.score + '<small> / 9 habits</small></div>';
+    wrap.appendChild(scoreRow);
+
+    var list = document.createElement("div");
+    list.className = "checklist";
+    CHECK_ITEMS.forEach(function(it){
+      var row = document.createElement("label");
+      row.className = "check-item";
+      var checked = !!(day.checklist && day.checklist[it.key]);
+      row.innerHTML = '<input type="checkbox" ' + (checked ? "checked" : "") + '>' +
+        '<span class="ci-text"><span class="ci-title">' + it.title + '</span><span class="ci-sub">' + it.sub + '</span></span>';
+      var cb = row.querySelector("input");
+      cb.addEventListener("change", function(){
+        var d = state.diet[dateIso] || { date:dateIso, checklist:{} };
+        d.checklist = d.checklist || {};
+        d.checklist[it.key] = cb.checked;
+        d.score = scoreFor(d.checklist);
+        d.date = dateIso;
+        state.diet[dateIso] = d;
+        saveState();
+        renderAll();
+      });
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    hostEl.appendChild(wrap);
+  }
+
+  function renderDietViews(){
+    var todayIso = document.getElementById("dDate").value || todayISO();
+    renderChecklist(document.getElementById("dietChecklistHost"), todayIso);
+    document.getElementById("overviewTodayDate").textContent = fmtDate(todayISO());
+    renderChecklist(document.getElementById("overviewChecklistHost"), todayISO());
+
+    var barsHost = document.getElementById("weekBarsHost");
+    barsHost.innerHTML = "";
+    var days = [];
+    for (var i=6; i>=0; i--){
+      var d = new Date(); d.setDate(d.getDate()-i);
+      var tz = d.getTimezoneOffset();
+      var local = new Date(d.getTime()-tz*60000);
+      days.push(local.toISOString().slice(0,10));
+    }
+    var chart = document.createElement("div");
+    chart.className = "bars-chart";
+    var total = 0, counted = 0;
+    days.forEach(function(iso){
+      var day = state.diet[iso];
+      var score = day ? day.score : 0;
+      if (day) { total += score; counted++; }
+      var col = document.createElement("div");
+      col.className = "bar-col";
+      var isToday = iso === todayISO();
+      var pct = Math.max(4, (score/9)*100);
+      col.innerHTML = '<div class="cap">' + score + '</div>' +
+        '<div class="bar' + (isToday ? ' today' : '') + '" style="height:' + pct + '%"></div>' +
+        '<div class="day-lbl">' + new Date(iso+"T00:00:00").toLocaleDateString(undefined,{weekday:"narrow"}) + '</div>';
+      chart.appendChild(col);
+    });
+    barsHost.appendChild(chart);
+    var avgSub = document.getElementById("weekAvgSub");
+    avgSub.textContent = counted ? ("avg " + (total/counted).toFixed(1) + " / 9") : "no days logged yet";
+
+    var tbody = document.querySelector("#dietTable tbody");
+    tbody.innerHTML = "";
+    var allDays = Object.keys(state.diet).sort().reverse();
+    document.getElementById("dietEmpty").style.display = allDays.length ? "none" : "block";
+    allDays.forEach(function(iso){
+      var day = state.diet[iso];
+      var met = CHECK_ITEMS.filter(function(it){ return day.checklist && day.checklist[it.key]; }).map(function(it){ return it.title; }).join(", ") || "—";
+      var status = day.score >= 7 ? "good" : (day.score >= 4 ? "warn" : "critical");
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>' + fmtDate(iso) + '</td>' +
+        '<td><span class="pill ' + status + '">' + day.score + ' / 9</span></td>' +
+        '<td style="color:var(--ink-secondary);font-size:12.5px;">' + met + '</td>' +
+        '<td><button class="btn danger" data-del-diet="' + iso + '">Remove</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del-diet]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var iso = btn.getAttribute("data-del-diet");
+        delete state.diet[iso];
+        saveState();
+        renderAll();
+      });
+    });
+  }
+
+  /* ---------- tables: weight & labs ---------- */
+  function renderWeightTable(){
+    var entries = state.weight.slice().sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+    var tbody = document.querySelector("#weightTable tbody");
+    tbody.innerHTML = "";
+    document.getElementById("weightEmpty").style.display = entries.length ? "none" : "block";
+    var sortedAsc = state.weight.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    entries.forEach(function(e){
+      var idx = sortedAsc.findIndex(function(x){ return x.id === e.id; });
+      var prev = idx > 0 ? sortedAsc[idx-1] : null;
+      var delta = prev ? (e.weight - prev.weight) : null;
+      var deltaHtml = delta==null ? '<span style="color:var(--ink-muted);">—</span>' :
+        '<span class="delta ' + (delta<0?"good":(delta>0?"bad":"flat")) + '">' + (delta>0?"+":"") + delta.toFixed(1) + '</span>';
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>' + fmtDate(e.date) + '</td>' +
+        '<td class="num">' + e.weight.toFixed(1) + ' lbs</td>' +
+        '<td class="num">' + deltaHtml + '</td>' +
+        '<td style="color:var(--ink-secondary);">' + (e.note || "—") + '</td>' +
+        '<td><button class="btn danger" data-del-weight="' + e.id + '">Remove</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del-weight]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-del-weight");
+        state.weight = state.weight.filter(function(x){ return x.id !== id; });
+        saveState();
+        renderAll();
+      });
+    });
+  }
+
+  function renderLabTable(){
+    var entries = state.labs.slice().sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+    var tbody = document.querySelector("#labTable tbody");
+    tbody.innerHTML = "";
+    document.getElementById("labEmpty").style.display = entries.length ? "none" : "block";
+    entries.forEach(function(e){
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>' + fmtDate(e.date) + '</td>' +
+        '<td class="num">' + (e.total ?? "—") + '</td>' +
+        '<td class="num">' + (e.ldl ?? "—") + '</td>' +
+        '<td class="num">' + (e.hdl ?? "—") + '</td>' +
+        '<td class="num">' + (e.trig ?? "—") + '</td>' +
+        '<td style="color:var(--ink-secondary);">' + (e.note || "—") + '</td>' +
+        '<td><button class="btn danger" data-del-lab="' + e.id + '">Remove</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del-lab]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-del-lab");
+        state.labs = state.labs.filter(function(x){ return x.id !== id; });
+        saveState();
+        renderAll();
+      });
+    });
+  }
+
+  /* ---------- overview stat tiles ---------- */
+  function renderStats(){
+    var host = document.getElementById("statRow");
+    var wsorted = state.weight.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    var current = wsorted.length ? wsorted[wsorted.length-1] : null;
+    var first = wsorted.length ? wsorted[0] : null;
+    var totalChange = (current && first) ? (current.weight - first.weight) : null;
+
+    var todayDay = state.diet[todayISO()];
+    var todayScore = todayDay ? todayDay.score : 0;
+
+    var lsorted = state.labs.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    var latestLab = lsorted.length ? lsorted[lsorted.length-1] : null;
+
+    var tiles = [];
+    tiles.push({
+      label:"Current weight",
+      value: current ? current.weight.toFixed(1) + '<small> lbs</small>' : "—",
+      delta: totalChange!=null ? ((totalChange<=0?"↓ ":"↑ ") + Math.abs(totalChange).toFixed(1) + " lbs since start") : "no entries yet",
+      cls: totalChange==null?"flat":(totalChange<0?"good":(totalChange>0?"bad":"flat"))
+    });
+    tiles.push({
+      label:"Weeks tracked",
+      value: String(wsorted.length),
+      delta: wsorted.length ? "weigh-ins logged" : "log your first below",
+      cls:"flat"
+    });
+    tiles.push({
+      label:"Today's Mediterranean score",
+      value: todayScore + '<small> / 9</small>',
+      delta: todayScore>=7 ? "on track" : (todayScore>0 ? "keep going" : "not logged yet"),
+      cls: todayScore>=7?"good":(todayScore>0?"flat":"flat")
+    });
+    tiles.push({
+      label:"Latest total cholesterol",
+      value: latestLab && latestLab.total!=null ? latestLab.total + '<small> mg/dL</small>' : "—",
+      delta: latestLab ? fmtDateShort(latestLab.date) : "no labs yet",
+      cls:"flat"
+    });
+
+    host.innerHTML = "";
+    tiles.forEach(function(t){
+      var el = document.createElement("div");
+      el.className = "stat-tile";
+      el.innerHTML = '<div class="label">' + t.label + '</div>' +
+        '<div class="value">' + t.value + '</div>' +
+        '<div class="delta ' + t.cls + '">' + t.delta + '</div>';
+      host.appendChild(el);
+    });
+  }
+
+  /* ---------- render all ---------- */
+  function renderAll(){
+    renderStats();
+    renderWeightChart("weightChartHost", "weightTrendSub");
+    renderWeightChart("weightChartHostFull", "weightFullSub");
+    renderWeightTable();
+    renderLabCharts();
+    renderLabTable();
+    renderDietViews();
+    var gw = document.getElementById("goalWeight");
+    if (gw && document.activeElement !== gw) {
+      gw.value = state.profile.goalWeight != null ? state.profile.goalWeight : "";
+    }
+  }
+
+  /* ---------- backup: export / import / reset ---------- */
+  function setupBackup(){
+    var modal = document.getElementById("backupModal");
+    document.getElementById("openBackup").addEventListener("click", function(){ modal.hidden = false; });
+    document.getElementById("closeBackup").addEventListener("click", function(){ modal.hidden = true; });
+    modal.addEventListener("click", function(ev){ if (ev.target === modal) modal.hidden = true; });
+
+    document.getElementById("exportBtn").addEventListener("click", function(){
+      var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "aegean-table-backup-" + todayISO() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    var importFile = document.getElementById("importFile");
+    document.getElementById("importBtn").addEventListener("click", function(){ importFile.click(); });
+    importFile.addEventListener("change", function(){
+      var file = importFile.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        try {
+          var parsed = JSON.parse(reader.result);
+          if (!parsed || typeof parsed !== "object") throw new Error("bad file");
+          state.profile = parsed.profile || { goalWeight:null };
+          state.weight = Array.isArray(parsed.weight) ? parsed.weight : [];
+          state.labs = Array.isArray(parsed.labs) ? parsed.labs : [];
+          state.diet = parsed.diet && typeof parsed.diet === "object" ? parsed.diet : {};
+          saveState();
+          renderAll();
+          modal.hidden = true;
+          alert("Backup imported.");
+        } catch(e){
+          alert("That file doesn't look like an Aegean Table backup.");
+        }
+        importFile.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", function(){
+      if (!confirm("This erases every weigh-in, lab result, and diet entry stored on this device. Export a backup first if you want to keep them. Continue?")) return;
+      state = { profile:{ goalWeight:null }, weight:[], labs:[], diet:{} };
+      saveState();
+      renderAll();
+      modal.hidden = true;
+    });
+  }
+
+  /* ---------- forms ---------- */
+  function setupForms(){
+    document.getElementById("wDate").value = todayISO();
+    document.getElementById("lDate").value = todayISO();
+    document.getElementById("dDate").value = todayISO();
+    document.getElementById("todayLabel").textContent = fmtDate(todayISO());
+
+    document.getElementById("weightForm").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var date = document.getElementById("wDate").value;
+      var weight = parseFloat(document.getElementById("wWeight").value);
+      var note = document.getElementById("wNote").value.trim();
+      if (!date || isNaN(weight)) return;
+      var existing = state.weight.find(function(x){ return x.date === date; });
+      var entry = { id: existing ? existing.id : uid(), date:date, weight:weight, note:note };
+      state.weight = state.weight.filter(function(x){ return x.date !== date; }).concat([entry]);
+      saveState();
+      document.getElementById("wWeight").value = "";
+      document.getElementById("wNote").value = "";
+      renderAll();
+    });
+
+    document.getElementById("labForm").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var date = document.getElementById("lDate").value;
+      if (!date) return;
+      var num = function(id){ var v = document.getElementById(id).value; return v === "" ? null : parseFloat(v); };
+      var existing = state.labs.find(function(x){ return x.date === date; });
+      var entry = {
+        id: existing ? existing.id : uid(), date:date,
+        total: num("lTotal"), ldl: num("lLdl"), hdl: num("lHdl"), trig: num("lTrig"),
+        note: document.getElementById("lNote").value.trim()
+      };
+      state.labs = state.labs.filter(function(x){ return x.date !== date; }).concat([entry]);
+      saveState();
+      ["lTotal","lLdl","lHdl","lTrig","lNote"].forEach(function(id){ document.getElementById(id).value = ""; });
+      renderAll();
+    });
+
+    document.getElementById("dDate").addEventListener("change", renderDietViews);
+
+    var goalInput = document.getElementById("goalWeight");
+    goalInput.addEventListener("change", function(){
+      var v = goalInput.value === "" ? null : parseFloat(goalInput.value);
+      state.profile.goalWeight = v;
+      saveState();
+      renderAll();
+    });
+  }
+
+  /* ---------- service worker ---------- */
+  function setupServiceWorker(){
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function(){
+        navigator.serviceWorker.register("sw.js").catch(function(){ /* offline support is best-effort */ });
+      });
+    }
+  }
+
+  /* ---------- boot ---------- */
+  document.addEventListener("DOMContentLoaded", function(){
+    loadState();
+    setupTabs();
+    setupForms();
+    setupBackup();
+    renderAll();
+    setupServiceWorker();
+  });
+})();
+</script>
+</body>
+</html>
