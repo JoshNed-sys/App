@@ -306,6 +306,18 @@
   .meal-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .meal-marked{ font-size:12.5px; color:var(--good); font-weight:600; }
 
+  .food-entry{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+    padding:9px 0; border-bottom:1px solid var(--line);
+  }
+  .food-entry:last-child{ border-bottom:none; }
+  .food-entry .fe-body{ display:flex; flex-wrap:wrap; gap:2px 10px; align-items:baseline; flex:1; min-width:0; }
+  .food-entry .fe-meal{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold);
+    font-weight:700; flex:none; white-space:nowrap;
+  }
+  .food-entry .fe-text{ font-size:13.5px; color:var(--ink); word-break:break-word; }
+
   .chart-wrap{ position:relative; }
   svg.chart{ display:block; width:100%; height:auto; overflow:visible; }
   .axis-label{ font-size:10.5px; fill:var(--ink-muted); font-family:"Work Sans",sans-serif; }
@@ -588,6 +600,30 @@
 
     <div class="card">
       <div class="card-head">
+        <h2>What did you eat?</h2>
+        <span class="sub">A quick food diary for the date shown above</span>
+      </div>
+      <form id="mealLogForm" class="field-row">
+        <div class="field">
+          <label for="mealLogType">Meal</label>
+          <select id="mealLogType">
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snack">Snack</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1;min-width:200px;">
+          <label for="mealLogText">What you ate</label>
+          <input type="text" id="mealLogText" placeholder="e.g. grilled salmon, roasted broccoli, farro" required>
+        </div>
+        <button class="btn" type="submit">Add entry</button>
+      </form>
+      <div id="mealLogHost" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
         <h2>Need a meal idea?</h2>
         <span class="sub">A rotating set of Mediterranean dishes, tied to today's checklist and your weight goal</span>
       </div>
@@ -619,7 +655,7 @@
     <div class="card">
       <div class="card-head"><h2>Checklist history</h2></div>
       <div class="table-wrap"><table class="log" id="dietTable">
-        <thead><tr><th>Date</th><th>Score</th><th>Habits met</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Score</th><th>Habits met</th><th>What you ate</th><th></th></tr></thead>
         <tbody></tbody>
       </table></div>
       <div class="empty" id="dietEmpty" style="display:none;">
@@ -735,6 +771,11 @@
     return d.toLocaleDateString(undefined, { month:"short", day:"numeric" });
   }
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
 
   /* ---------- persistence: localStorage ---------- */
   function loadState(){
@@ -1009,9 +1050,39 @@
     hostEl.appendChild(wrap);
   }
 
+  function renderMealLog(dateIso){
+    var host = document.getElementById("mealLogHost");
+    var day = state.diet[dateIso];
+    var meals = (day && Array.isArray(day.meals)) ? day.meals : [];
+    if (!meals.length) {
+      host.innerHTML = '<div class="empty" style="padding:16px 4px;">Nothing logged for ' +
+        (dateIso === todayISO() ? "today" : fmtDate(dateIso)) + ' yet.</div>';
+      return;
+    }
+    var order = { breakfast:0, lunch:1, dinner:2, snack:3 };
+    var sorted = meals.slice().sort(function(a,b){ return (order[a.type]||9) - (order[b.type]||9); });
+    host.innerHTML = sorted.map(function(m){
+      return '<div class="food-entry">' +
+        '<div class="fe-body"><span class="fe-meal">' + escapeHtml(m.type) + '</span><span class="fe-text">' + escapeHtml(m.text) + '</span></div>' +
+        '<button class="btn danger" data-del-meal="' + m.id + '">Remove</button>' +
+      '</div>';
+    }).join("");
+    host.querySelectorAll("[data-del-meal]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-del-meal");
+        var d = state.diet[dateIso];
+        if (!d) return;
+        d.meals = (d.meals || []).filter(function(m){ return m.id !== id; });
+        saveState();
+        renderAll();
+      });
+    });
+  }
+
   function renderDietViews(){
     var todayIso = document.getElementById("dDate").value || todayISO();
     renderChecklist(document.getElementById("dietChecklistHost"), todayIso);
+    renderMealLog(todayIso);
     document.getElementById("overviewTodayDate").textContent = fmtDate(todayISO());
     renderChecklist(document.getElementById("overviewChecklistHost"), todayISO());
 
@@ -1051,11 +1122,16 @@
     allDays.forEach(function(iso){
       var day = state.diet[iso];
       var met = CHECK_ITEMS.filter(function(it){ return day.checklist && day.checklist[it.key]; }).map(function(it){ return it.title; }).join(", ") || "—";
-      var status = day.score >= 7 ? "good" : (day.score >= 4 ? "warn" : "critical");
+      var meals = Array.isArray(day.meals) ? day.meals : [];
+      var ate = meals.length
+        ? meals.map(function(m){ return escapeHtml(m.type) + ": " + escapeHtml(m.text); }).join("; ")
+        : "—";
+      var status = (day.score||0) >= 7 ? "good" : ((day.score||0) >= 4 ? "warn" : "critical");
       var tr = document.createElement("tr");
       tr.innerHTML = '<td>' + fmtDate(iso) + '</td>' +
-        '<td><span class="pill ' + status + '">' + day.score + ' / 9</span></td>' +
+        '<td><span class="pill ' + status + '">' + (day.score||0) + ' / 9</span></td>' +
         '<td style="color:var(--ink-secondary);font-size:12.5px;">' + met + '</td>' +
+        '<td style="color:var(--ink-secondary);font-size:12.5px;">' + ate + '</td>' +
         '<td><button class="btn danger" data-del-diet="' + iso + '">Remove</button></td>';
       tbody.appendChild(tr);
     });
@@ -1296,6 +1372,25 @@
     });
   }
 
+  /* ---------- food diary ---------- */
+  function setupMealLogForm(){
+    document.getElementById("mealLogForm").addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var dateIso = document.getElementById("dDate").value || todayISO();
+      var type = document.getElementById("mealLogType").value;
+      var text = document.getElementById("mealLogText").value.trim();
+      if (!text) return;
+      var d = state.diet[dateIso] || { date:dateIso, checklist:{}, score:0 };
+      d.meals = d.meals || [];
+      d.meals.push({ id: uid(), type:type, text:text });
+      d.date = dateIso;
+      state.diet[dateIso] = d;
+      saveState();
+      document.getElementById("mealLogText").value = "";
+      renderAll();
+    });
+  }
+
   /* ---------- meal suggester ---------- */
   function setupMealSuggester(){
     var lastMeal = null;
@@ -1392,6 +1487,7 @@
     setupTabs();
     setupForms();
     setupBackup();
+    setupMealLogForm();
     setupMealSuggester();
     renderAll();
     setupServiceWorker();
