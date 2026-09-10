@@ -285,6 +285,26 @@
   .pill.warn{ background:var(--warn-wash); color:var(--warn); }
   .pill.critical{ background:var(--critical-wash); color:var(--critical); }
   .pill.neutral{ background:var(--surface-sunken); color:var(--ink-secondary); }
+  .pill.accent{ background:var(--accent-wash); color:var(--accent-strong); }
+
+  .meal-empty{
+    text-align:center; padding:28px 16px; color:var(--ink-secondary); font-size:13.5px;
+    border:1px dashed var(--line); border-radius:12px;
+  }
+  .meal-card{
+    border:1px solid var(--line); border-radius:12px;
+    background:var(--surface-sunken);
+    padding:16px 18px;
+  }
+  .meal-card .meal-kind{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;
+    color:var(--gold); margin-bottom:4px;
+  }
+  .meal-card h3{ font-size:18px; margin-bottom:6px; }
+  .meal-card p{ margin:0 0 12px; font-size:13.5px; color:var(--ink-secondary); line-height:1.5; }
+  .meal-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .meal-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .meal-marked{ font-size:12.5px; color:var(--good); font-weight:600; }
 
   .chart-wrap{ position:relative; }
   svg.chart{ display:block; width:100%; height:auto; overflow:visible; }
@@ -567,6 +587,29 @@
     </div>
 
     <div class="card">
+      <div class="card-head">
+        <h2>Need a meal idea?</h2>
+        <span class="sub">A rotating set of Mediterranean dishes, tied to today's checklist</span>
+      </div>
+      <div class="field-row" style="margin-bottom:16px;">
+        <div class="field">
+          <label for="mealType">Meal</label>
+          <select id="mealType">
+            <option value="any">Any</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snack">Snack</option>
+          </select>
+        </div>
+        <button class="btn" id="suggestMealBtn" type="button">Suggest a meal</button>
+      </div>
+      <div id="mealResultHost">
+        <div class="meal-empty">Pick a meal type (or leave it on "Any") and tap Suggest a meal.</div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h2>Checklist history</h2></div>
       <div class="table-wrap"><table class="log" id="dietTable">
         <thead><tr><th>Date</th><th>Score</th><th>Habits met</th><th></th></tr></thead>
@@ -630,6 +673,37 @@
   };
   var LAB_KEYS = ["total","ldl","hdl","trig"];
   var STORAGE_KEY = "aegeanTable:v1";
+
+  var CHECK_BY_KEY = {};
+  CHECK_ITEMS.forEach(function(it){ CHECK_BY_KEY[it.key] = it; });
+
+  var MEALS = [
+    { name:"Greek yogurt with walnuts & honey", type:"breakfast", desc:"Full-fat Greek yogurt topped with chopped walnuts and a thin drizzle of honey.", tags:["dairy","legumes"] },
+    { name:"Avocado & tomato on whole-grain toast", type:"breakfast", desc:"Mashed avocado, sliced tomato, and a good olive oil on toasted whole-grain bread.", tags:["grains","oil","veg"] },
+    { name:"Shakshuka", type:"breakfast", desc:"Eggs poached in a spiced tomato and bell pepper sauce, finished with olive oil.", tags:["veg","oil"] },
+    { name:"Fig, orange & pistachio bowl", type:"breakfast", desc:"Sliced fresh figs and orange segments with a scatter of pistachios.", tags:["fruit","legumes"] },
+    { name:"Spinach & feta on whole wheat pita", type:"breakfast", desc:"Sautéed spinach and crumbled feta folded into warm whole wheat pita.", tags:["veg","dairy","grains"] },
+    { name:"Overnight oats with berries & almonds", type:"breakfast", desc:"Rolled oats soaked overnight with milk, topped with berries and sliced almonds.", tags:["grains","fruit","legumes"] },
+
+    { name:"Greek salad with chickpeas", type:"lunch", desc:"Cucumber, tomato, olives, and feta over chickpeas, dressed in olive oil.", tags:["veg","legumes","oil"] },
+    { name:"Tabbouleh", type:"lunch", desc:"Bulgur wheat with parsley, tomato, mint, and lemon.", tags:["grains","veg"] },
+    { name:"Grilled sardines on whole-grain bread", type:"lunch", desc:"Simply grilled sardines with lemon, served over toasted whole-grain bread.", tags:["fish","grains"] },
+    { name:"Lentil soup", type:"lunch", desc:"Slow-simmered lentils with carrot and cumin, finished with a swirl of olive oil.", tags:["legumes","oil"] },
+    { name:"White bean & escarole stew", type:"lunch", desc:"Creamy white beans braised with escarole, garlic, and olive oil.", tags:["legumes","veg","oil"] },
+    { name:"Farro salad with roasted vegetables", type:"lunch", desc:"Chewy farro tossed with roasted zucchini, peppers, and crumbled feta.", tags:["grains","veg","dairy"] },
+
+    { name:"Baked salmon with roasted broccoli", type:"dinner", desc:"Salmon baked with lemon and olive oil, alongside roasted broccoli.", tags:["fish","oil","veg"] },
+    { name:"Grilled branzino with fennel-orange salad", type:"dinner", desc:"Whole grilled branzino with a bright shaved fennel and orange salad.", tags:["fish","veg","fruit"] },
+    { name:"Chickpea & vegetable tagine", type:"dinner", desc:"Chickpeas simmered with tomato, carrot, and warm spices.", tags:["legumes","veg"] },
+    { name:"Whole-wheat pasta, tomato & garlic", type:"dinner", desc:"Whole-wheat pasta tossed with a simple tomato, garlic, and olive oil sauce.", tags:["grains","veg","oil"] },
+    { name:"Stuffed bell peppers", type:"dinner", desc:"Peppers stuffed with rice, herbs, and pine nuts, baked until tender.", tags:["veg","grains","legumes"] },
+    { name:"Grilled shrimp with tzatziki", type:"dinner", desc:"Grilled shrimp skewers with tzatziki and a cucumber-tomato salad.", tags:["fish","dairy","veg"] },
+
+    { name:"Almonds & dried apricots", type:"snack", desc:"A small handful of raw almonds with a few dried apricots.", tags:["legumes","fruit"] },
+    { name:"Hummus with vegetables", type:"snack", desc:"Hummus with cucumber and carrot sticks for dipping.", tags:["legumes","veg"] },
+    { name:"Apple with tahini", type:"snack", desc:"Sliced apple with a spoonful of tahini.", tags:["fruit","legumes"] },
+    { name:"Olives & whole-grain crackers", type:"snack", desc:"Marinated olives with a few whole-grain crackers.", tags:["oil","grains"] }
+  ];
 
   /* ---------- state ---------- */
   var state = {
@@ -1215,6 +1289,65 @@
     });
   }
 
+  /* ---------- meal suggester ---------- */
+  function setupMealSuggester(){
+    var lastMeal = null;
+    var select = document.getElementById("mealType");
+    var host = document.getElementById("mealResultHost");
+
+    function renderMeal(meal){
+      lastMeal = meal;
+      var dateIso = document.getElementById("dDate").value || todayISO();
+      var day = state.diet[dateIso];
+      var tagsHtml = meal.tags.map(function(key){
+        var item = CHECK_BY_KEY[key];
+        var already = !!(day && day.checklist && day.checklist[key]);
+        return '<span class="pill ' + (already ? "good" : "accent") + '">' + (item ? item.title : key) + '</span>';
+      }).join("");
+      host.innerHTML =
+        '<div class="meal-card">' +
+          '<div class="meal-kind">' + meal.type + '</div>' +
+          '<h3>' + meal.name + '</h3>' +
+          '<p>' + meal.desc + '</p>' +
+          '<div class="meal-tags">' + tagsHtml + '</div>' +
+          '<div class="meal-actions">' +
+            '<button class="btn ghost" id="markHabitsBtn" type="button">Mark these habits for ' + (dateIso === todayISO() ? "today" : fmtDateShort(dateIso)) + '</button>' +
+            '<button class="btn ghost" id="anotherMealBtn" type="button">Suggest another</button>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById("markHabitsBtn").addEventListener("click", function(){
+        var d = state.diet[dateIso] || { date:dateIso, checklist:{} };
+        d.checklist = d.checklist || {};
+        meal.tags.forEach(function(key){ d.checklist[key] = true; });
+        d.score = scoreFor(d.checklist);
+        d.date = dateIso;
+        state.diet[dateIso] = d;
+        saveState();
+        renderAll();
+        renderMeal(meal);
+      });
+      document.getElementById("anotherMealBtn").addEventListener("click", function(){
+        pickAndRender();
+      });
+    }
+
+    function pickAndRender(){
+      var type = select.value;
+      var pool = type === "any" ? MEALS : MEALS.filter(function(m){ return m.type === type; });
+      if (!pool.length) pool = MEALS;
+      var choices = pool;
+      if (pool.length > 1 && lastMeal) {
+        var filtered = pool.filter(function(m){ return m.name !== lastMeal.name; });
+        if (filtered.length) choices = filtered;
+      }
+      var meal = choices[Math.floor(Math.random() * choices.length)];
+      renderMeal(meal);
+    }
+
+    document.getElementById("suggestMealBtn").addEventListener("click", pickAndRender);
+  }
+
   /* ---------- service worker ---------- */
   function setupServiceWorker(){
     if ("serviceWorker" in navigator) {
@@ -1230,6 +1363,7 @@
     setupTabs();
     setupForms();
     setupBackup();
+    setupMealSuggester();
     renderAll();
     setupServiceWorker();
   });
