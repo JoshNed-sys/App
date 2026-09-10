@@ -589,9 +589,9 @@
     <div class="card">
       <div class="card-head">
         <h2>Need a meal idea?</h2>
-        <span class="sub">A rotating set of Mediterranean dishes, tied to today's checklist</span>
+        <span class="sub">A rotating set of Mediterranean dishes, tied to today's checklist and your weight goal</span>
       </div>
-      <div class="field-row" style="margin-bottom:16px;">
+      <div class="field-row" style="margin-bottom:10px;">
         <div class="field">
           <label for="mealType">Meal</label>
           <select id="mealType">
@@ -604,6 +604,13 @@
         </div>
         <button class="btn" id="suggestMealBtn" type="button">Suggest a meal</button>
       </div>
+      <label class="check-item" style="border:none;padding:2px 6px 14px;cursor:pointer;">
+        <input type="checkbox" id="lightToggle">
+        <span class="ci-text">
+          <span class="ci-title">Favor lighter meals for weight loss</span>
+          <span class="ci-sub">Sticks to lower-calorie dishes from the list below</span>
+        </span>
+      </label>
       <div id="mealResultHost">
         <div class="meal-empty">Pick a meal type (or leave it on "Any") and tap Suggest a meal.</div>
       </div>
@@ -678,31 +685,31 @@
   CHECK_ITEMS.forEach(function(it){ CHECK_BY_KEY[it.key] = it; });
 
   var MEALS = [
-    { name:"Greek yogurt with walnuts & honey", type:"breakfast", desc:"Full-fat Greek yogurt topped with chopped walnuts and a thin drizzle of honey.", tags:["dairy","legumes"] },
-    { name:"Avocado & tomato on whole-grain toast", type:"breakfast", desc:"Mashed avocado, sliced tomato, and a good olive oil on toasted whole-grain bread.", tags:["grains","oil","veg"] },
-    { name:"Shakshuka", type:"breakfast", desc:"Eggs poached in a spiced tomato and bell pepper sauce, finished with olive oil.", tags:["veg","oil"] },
-    { name:"Fig, orange & pistachio bowl", type:"breakfast", desc:"Sliced fresh figs and orange segments with a scatter of pistachios.", tags:["fruit","legumes"] },
-    { name:"Spinach & feta on whole wheat pita", type:"breakfast", desc:"Sautéed spinach and crumbled feta folded into warm whole wheat pita.", tags:["veg","dairy","grains"] },
-    { name:"Overnight oats with berries & almonds", type:"breakfast", desc:"Rolled oats soaked overnight with milk, topped with berries and sliced almonds.", tags:["grains","fruit","legumes"] },
+    { name:"Greek yogurt with walnuts & honey", type:"breakfast", desc:"Full-fat Greek yogurt topped with chopped walnuts and a thin drizzle of honey.", tags:["dairy","legumes"], kcal:280, light:true },
+    { name:"Avocado & tomato on whole-grain toast", type:"breakfast", desc:"Mashed avocado, sliced tomato, and a good olive oil on toasted whole-grain bread.", tags:["grains","oil","veg"], kcal:320, light:true },
+    { name:"Shakshuka", type:"breakfast", desc:"Eggs poached in a spiced tomato and bell pepper sauce, finished with olive oil.", tags:["veg","oil"], kcal:340, light:true },
+    { name:"Fig, orange & pistachio bowl", type:"breakfast", desc:"Sliced fresh figs and orange segments with a scatter of pistachios.", tags:["fruit","legumes"], kcal:250, light:true },
+    { name:"Spinach & feta on whole wheat pita", type:"breakfast", desc:"Sautéed spinach and crumbled feta folded into warm whole wheat pita.", tags:["veg","dairy","grains"], kcal:380, light:true },
+    { name:"Overnight oats with berries & almonds", type:"breakfast", desc:"Rolled oats soaked overnight with milk, topped with berries and sliced almonds.", tags:["grains","fruit","legumes"], kcal:360, light:true },
 
-    { name:"Greek salad with chickpeas", type:"lunch", desc:"Cucumber, tomato, olives, and feta over chickpeas, dressed in olive oil.", tags:["veg","legumes","oil"] },
-    { name:"Tabbouleh", type:"lunch", desc:"Bulgur wheat with parsley, tomato, mint, and lemon.", tags:["grains","veg"] },
-    { name:"Grilled sardines on whole-grain bread", type:"lunch", desc:"Simply grilled sardines with lemon, served over toasted whole-grain bread.", tags:["fish","grains"] },
-    { name:"Lentil soup", type:"lunch", desc:"Slow-simmered lentils with carrot and cumin, finished with a swirl of olive oil.", tags:["legumes","oil"] },
-    { name:"White bean & escarole stew", type:"lunch", desc:"Creamy white beans braised with escarole, garlic, and olive oil.", tags:["legumes","veg","oil"] },
-    { name:"Farro salad with roasted vegetables", type:"lunch", desc:"Chewy farro tossed with roasted zucchini, peppers, and crumbled feta.", tags:["grains","veg","dairy"] },
+    { name:"Greek salad with chickpeas", type:"lunch", desc:"Cucumber, tomato, olives, and feta over chickpeas, dressed in olive oil.", tags:["veg","legumes","oil"], kcal:420, light:true },
+    { name:"Tabbouleh", type:"lunch", desc:"Bulgur wheat with parsley, tomato, mint, and lemon.", tags:["grains","veg"], kcal:300, light:true },
+    { name:"Grilled sardines on whole-grain bread", type:"lunch", desc:"Simply grilled sardines with lemon, served over toasted whole-grain bread.", tags:["fish","grains"], kcal:380, light:true },
+    { name:"Lentil soup", type:"lunch", desc:"Slow-simmered lentils with carrot and cumin, finished with a swirl of olive oil.", tags:["legumes","oil"], kcal:320, light:true },
+    { name:"White bean & escarole stew", type:"lunch", desc:"Creamy white beans braised with escarole, garlic, and olive oil.", tags:["legumes","veg","oil"], kcal:350, light:true },
+    { name:"Farro salad with roasted vegetables", type:"lunch", desc:"Chewy farro tossed with roasted zucchini, peppers, and crumbled feta.", tags:["grains","veg","dairy"], kcal:430, light:true },
 
-    { name:"Baked salmon with roasted broccoli", type:"dinner", desc:"Salmon baked with lemon and olive oil, alongside roasted broccoli.", tags:["fish","oil","veg"] },
-    { name:"Grilled branzino with fennel-orange salad", type:"dinner", desc:"Whole grilled branzino with a bright shaved fennel and orange salad.", tags:["fish","veg","fruit"] },
-    { name:"Chickpea & vegetable tagine", type:"dinner", desc:"Chickpeas simmered with tomato, carrot, and warm spices.", tags:["legumes","veg"] },
-    { name:"Whole-wheat pasta, tomato & garlic", type:"dinner", desc:"Whole-wheat pasta tossed with a simple tomato, garlic, and olive oil sauce.", tags:["grains","veg","oil"] },
-    { name:"Stuffed bell peppers", type:"dinner", desc:"Peppers stuffed with rice, herbs, and pine nuts, baked until tender.", tags:["veg","grains","legumes"] },
-    { name:"Grilled shrimp with tzatziki", type:"dinner", desc:"Grilled shrimp skewers with tzatziki and a cucumber-tomato salad.", tags:["fish","dairy","veg"] },
+    { name:"Baked salmon with roasted broccoli", type:"dinner", desc:"Salmon baked with lemon and olive oil, alongside roasted broccoli.", tags:["fish","oil","veg"], kcal:420, light:true },
+    { name:"Grilled branzino with fennel-orange salad", type:"dinner", desc:"Whole grilled branzino with a bright shaved fennel and orange salad.", tags:["fish","veg","fruit"], kcal:380, light:true },
+    { name:"Chickpea & vegetable tagine", type:"dinner", desc:"Chickpeas simmered with tomato, carrot, and warm spices.", tags:["legumes","veg"], kcal:400, light:true },
+    { name:"Whole-wheat pasta, tomato & garlic", type:"dinner", desc:"Whole-wheat pasta tossed with a simple tomato, garlic, and olive oil sauce.", tags:["grains","veg","oil"], kcal:520, light:false },
+    { name:"Stuffed bell peppers", type:"dinner", desc:"Peppers stuffed with rice, herbs, and pine nuts, baked until tender.", tags:["veg","grains","legumes"], kcal:480, light:false },
+    { name:"Grilled shrimp with tzatziki", type:"dinner", desc:"Grilled shrimp skewers with tzatziki and a cucumber-tomato salad.", tags:["fish","dairy","veg"], kcal:360, light:true },
 
-    { name:"Almonds & dried apricots", type:"snack", desc:"A small handful of raw almonds with a few dried apricots.", tags:["legumes","fruit"] },
-    { name:"Hummus with vegetables", type:"snack", desc:"Hummus with cucumber and carrot sticks for dipping.", tags:["legumes","veg"] },
-    { name:"Apple with tahini", type:"snack", desc:"Sliced apple with a spoonful of tahini.", tags:["fruit","legumes"] },
-    { name:"Olives & whole-grain crackers", type:"snack", desc:"Marinated olives with a few whole-grain crackers.", tags:["oil","grains"] }
+    { name:"Almonds & dried apricots", type:"snack", desc:"A small handful of raw almonds with a few dried apricots.", tags:["legumes","fruit"], kcal:180, light:true },
+    { name:"Hummus with vegetables", type:"snack", desc:"Hummus with cucumber and carrot sticks for dipping.", tags:["legumes","veg"], kcal:150, light:true },
+    { name:"Apple with tahini", type:"snack", desc:"Sliced apple with a spoonful of tahini.", tags:["fruit","legumes"], kcal:200, light:true },
+    { name:"Olives & whole-grain crackers", type:"snack", desc:"Marinated olives with a few whole-grain crackers.", tags:["oil","grains"], kcal:220, light:true }
   ];
 
   /* ---------- state ---------- */
@@ -1294,6 +1301,23 @@
     var lastMeal = null;
     var select = document.getElementById("mealType");
     var host = document.getElementById("mealResultHost");
+    var lightToggle = document.getElementById("lightToggle");
+
+    // Default the "favor lighter meals" toggle on when there's an active weight-loss
+    // goal (a goal weight below the most recent logged weight), or use whatever the
+    // person last chose.
+    if (state.profile.preferLightMeals != null) {
+      lightToggle.checked = !!state.profile.preferLightMeals;
+    } else {
+      var wsorted = state.weight.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+      var current = wsorted.length ? wsorted[wsorted.length-1].weight : null;
+      var goal = state.profile.goalWeight;
+      lightToggle.checked = !!(goal != null && current != null && goal < current);
+    }
+    lightToggle.addEventListener("change", function(){
+      state.profile.preferLightMeals = lightToggle.checked;
+      saveState();
+    });
 
     function renderMeal(meal){
       lastMeal = meal;
@@ -1304,12 +1328,13 @@
         var already = !!(day && day.checklist && day.checklist[key]);
         return '<span class="pill ' + (already ? "good" : "accent") + '">' + (item ? item.title : key) + '</span>';
       }).join("");
+      var kcalPill = '<span class="pill ' + (meal.light ? "good" : "neutral") + '">~' + meal.kcal + ' kcal' + (meal.light ? " · lighter option" : "") + '</span>';
       host.innerHTML =
         '<div class="meal-card">' +
           '<div class="meal-kind">' + meal.type + '</div>' +
           '<h3>' + meal.name + '</h3>' +
           '<p>' + meal.desc + '</p>' +
-          '<div class="meal-tags">' + tagsHtml + '</div>' +
+          '<div class="meal-tags">' + kcalPill + tagsHtml + '</div>' +
           '<div class="meal-actions">' +
             '<button class="btn ghost" id="markHabitsBtn" type="button">Mark these habits for ' + (dateIso === todayISO() ? "today" : fmtDateShort(dateIso)) + '</button>' +
             '<button class="btn ghost" id="anotherMealBtn" type="button">Suggest another</button>' +
@@ -1334,7 +1359,11 @@
 
     function pickAndRender(){
       var type = select.value;
-      var pool = type === "any" ? MEALS : MEALS.filter(function(m){ return m.type === type; });
+      var pool = type === "any" ? MEALS.slice() : MEALS.filter(function(m){ return m.type === type; });
+      if (lightToggle.checked) {
+        var lighter = pool.filter(function(m){ return m.light; });
+        if (lighter.length) pool = lighter;
+      }
       if (!pool.length) pool = MEALS;
       var choices = pool;
       if (pool.length > 1 && lastMeal) {
