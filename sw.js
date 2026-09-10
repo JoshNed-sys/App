@@ -1,7 +1,7 @@
 // Aegean Table — minimal offline app-shell cache.
 // Bump this version string any time index.html (or another cached file) changes,
 // so returning phones pick up the new version instead of a stale cache.
-const CACHE_NAME = "aegean-table-v1";
+const CACHE_NAME = "aegean-table-v2";
 
 const APP_SHELL = [
   "./",
