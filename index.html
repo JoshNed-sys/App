@@ -601,7 +601,7 @@
     <div class="card">
       <div class="card-head">
         <h2>What did you eat?</h2>
-        <span class="sub">A quick food diary for the date shown above</span>
+        <span class="sub">A quick food diary — calories are estimated automatically from what you type</span>
       </div>
       <form id="mealLogForm" class="field-row">
         <div class="field">
@@ -619,7 +619,7 @@
         </div>
         <div class="field">
           <label for="mealLogCal">Calories</label>
-          <input type="number" id="mealLogCal" min="0" step="1" placeholder="optional" style="max-width:100px;">
+          <input type="number" id="mealLogCal" min="0" step="1" placeholder="auto" style="max-width:100px;">
         </div>
         <button class="btn" type="submit">Add entry</button>
       </form>
@@ -774,6 +774,50 @@
     { name:"Apple with tahini", type:"snack", desc:"Sliced apple with a spoonful of tahini.", tags:["fruit","legumes"], kcal:200, light:true },
     { name:"Olives & whole-grain crackers", type:"snack", desc:"Marinated olives with a few whole-grain crackers.", tags:["oil","grains"], kcal:220, light:true }
   ];
+
+  // Rough per-mention calorie estimates for common foods, used to auto-estimate a
+  // food diary entry's calories from its free text. Deliberately approximate — this
+  // is a quick estimate to save typing, not a nutrition database, and the number is
+  // always editable by hand.
+  var FOOD_CALORIES = [
+    { re:/\bsalmon\b/, kcal:230 }, { re:/\bsardines?\b/, kcal:190 }, { re:/\btuna\b/, kcal:180 },
+    { re:/\bshrimp|prawns?\b/, kcal:150 }, { re:/\bbranzino|sea bass|cod|white fish\b/, kcal:180 },
+    { re:/\bchicken\b/, kcal:250 }, { re:/\bsteak|beef\b/, kcal:350 }, { re:/\blamb\b/, kcal:330 },
+    { re:/\bpork\b/, kcal:300 }, { re:/\begg[s]?\b/, kcal:80 }, { re:/\byog[hu]rt\b/, kcal:150 },
+    { re:/\bfeta\b/, kcal:110 }, { re:/\bcheese\b/, kcal:110 }, { re:/\bhalloumi\b/, kcal:240 },
+    { re:/\bhummus\b/, kcal:160 }, { re:/\bchickpeas?\b/, kcal:210 }, { re:/\blentils?\b/, kcal:180 },
+    { re:/\bbeans?\b/, kcal:200 }, { re:/\bfarro|bulgur|quinoa|couscous\b/, kcal:200 },
+    { re:/\brice\b/, kcal:210 }, { re:/\bpasta|noodles?\b/, kcal:280 }, { re:/\bbread|pita|toast\b/, kcal:140 },
+    { re:/\boats?|granola|cereal\b/, kcal:190 }, { re:/\bpotato(es)?\b/, kcal:160 }, { re:/\bfries\b/, kcal:340 },
+    { re:/\bavocado\b/, kcal:240 }, { re:/\bolive oil\b/, kcal:120 }, { re:/\bolives?\b/, kcal:50 },
+    { re:/\bnuts?|almonds?|walnuts?|pistachios?|cashews?|pine nuts?\b/, kcal:170 },
+    { re:/\bsalad|greens|spinach|lettuce\b/, kcal:60 }, { re:/\bbroccoli|zucchini|peppers?|vegetables?|veggies\b/, kcal:60 },
+    { re:/\btomato(es)?\b/, kcal:25 }, { re:/\bcucumber\b/, kcal:15 }, { re:/\bcarrots?\b/, kcal:30 },
+    { re:/\bapple\b/, kcal:95 }, { re:/\bbanana\b/, kcal:105 }, { re:/\borange\b/, kcal:65 },
+    { re:/\bfigs?\b/, kcal:75 }, { re:/\bberr(y|ies)\b/, kcal:60 }, { re:/\bgrapes?\b/, kcal:100 },
+    { re:/\bmelon\b/, kcal:60 }, { re:/\bdates?\b/, kcal:66 }, { re:/\bhoney\b/, kcal:65 },
+    { re:/\bwine\b/, kcal:125 }, { re:/\bbeer\b/, kcal:150 }, { re:/\bcoffee\b/, kcal:5 }, { re:/\btea\b/, kcal:2 },
+    { re:/\bmilk\b/, kcal:100 }, { re:/\bsmoothie\b/, kcal:220 }, { re:/\bsoup\b/, kcal:180 },
+    { re:/\bstew|tagine\b/, kcal:280 }, { re:/\bsandwich|wrap\b/, kcal:350 }, { re:/\bpizza\b/, kcal:280 },
+    { re:/\bburger\b/, kcal:450 }, { re:/\btaco|burrito\b/, kcal:250 }, { re:/\bsushi\b/, kcal:300 },
+    { re:/\bsoda|coke|cola\b/, kcal:150 }, { re:/\bice cream\b/, kcal:270 }, { re:/\bcake\b/, kcal:350 },
+    { re:/\bcookies?\b/, kcal:150 }, { re:/\bchocolate\b/, kcal:210 }, { re:/\bbutter\b/, kcal:100 },
+    { re:/\btahini\b/, kcal:90 }, { re:/\bshakshuka\b/, kcal:340 }, { re:/\btabbouleh\b/, kcal:200 }
+  ];
+  function estimateCaloriesFromText(text){
+    if (!text) return null;
+    var t = String(text).toLowerCase();
+    var total = 0, matched = false;
+    FOOD_CALORIES.forEach(function(item){
+      var re = new RegExp(item.re.source, "gi");
+      var m = t.match(re);
+      if (m && m.length) {
+        matched = true;
+        total += item.kcal * Math.min(m.length, 3);
+      }
+    });
+    return matched ? total : null;
+  }
 
   /* ---------- state ---------- */
   var DEFAULT_DAILY_BURN = 2741;
@@ -1251,7 +1295,7 @@
     var order = { breakfast:0, lunch:1, dinner:2, snack:3 };
     var sorted = meals.slice().sort(function(a,b){ return (order[a.type]||9) - (order[b.type]||9); });
     host.innerHTML = sorted.map(function(m){
-      var calTxt = (m.calories != null) ? (' <span style="color:var(--ink-muted);">· ' + Math.round(m.calories) + ' kcal</span>') : "";
+      var calTxt = (m.calories != null) ? (' <span style="color:var(--ink-muted);">· ' + (m.estimated ? "~" : "") + Math.round(m.calories) + ' kcal' + (m.estimated ? ' <em style="font-style:normal;opacity:.75;">(estimated)</em>' : '') + '</span>') : "";
       return '<div class="food-entry">' +
         '<div class="fe-body"><span class="fe-meal">' + escapeHtml(m.type) + '</span><span class="fe-text">' + escapeHtml(m.text) + calTxt + '</span></div>' +
         '<button class="btn danger" data-del-meal="' + m.id + '">Remove</button>' +
@@ -1316,7 +1360,7 @@
       var meals = Array.isArray(day.meals) ? day.meals : [];
       var ate = meals.length
         ? meals.map(function(m){
-            return escapeHtml(m.type) + ": " + escapeHtml(m.text) + (m.calories != null ? " (" + Math.round(m.calories) + " kcal)" : "");
+            return escapeHtml(m.type) + ": " + escapeHtml(m.text) + (m.calories != null ? " (" + (m.estimated ? "~" : "") + Math.round(m.calories) + " kcal)" : "");
           }).join("; ")
         : "—";
       var status = (day.score||0) >= 7 ? "good" : ((day.score||0) >= 4 ? "warn" : "critical");
@@ -1579,22 +1623,51 @@
 
   /* ---------- food diary ---------- */
   function setupMealLogForm(){
+    var textInput = document.getElementById("mealLogText");
+    var calInput = document.getElementById("mealLogCal");
+
+    // Auto-estimate calories from what's typed, as it's typed — but never fight the
+    // person if they've entered their own number for this entry.
+    textInput.addEventListener("input", function(){
+      if (calInput.dataset.userSet === "true") return;
+      var est = estimateCaloriesFromText(textInput.value);
+      if (est != null) {
+        calInput.value = est;
+        calInput.dataset.auto = "true";
+      } else if (calInput.dataset.auto === "true") {
+        calInput.value = "";
+        calInput.dataset.auto = "";
+      }
+    });
+    calInput.addEventListener("input", function(){
+      calInput.dataset.userSet = "true";
+      calInput.dataset.auto = "";
+    });
+
     document.getElementById("mealLogForm").addEventListener("submit", function(ev){
       ev.preventDefault();
       var dateIso = document.getElementById("dDate").value || todayISO();
       var type = document.getElementById("mealLogType").value;
-      var text = document.getElementById("mealLogText").value.trim();
-      var calRaw = document.getElementById("mealLogCal").value;
-      var calories = calRaw === "" ? null : parseFloat(calRaw);
+      var text = textInput.value.trim();
+      var calRaw = calInput.value;
+      var wasEstimated = calRaw !== "" && calInput.dataset.userSet !== "true";
+      var calories = calRaw === "" ? estimateCaloriesFromText(text) : parseFloat(calRaw);
+      if (calRaw === "" && calories != null) wasEstimated = true;
       if (!text) return;
       var d = state.diet[dateIso] || { date:dateIso, checklist:{}, score:0 };
       d.meals = d.meals || [];
-      d.meals.push({ id: uid(), type:type, text:text, calories: (isFinite(calories) ? calories : null) });
+      d.meals.push({
+        id: uid(), type:type, text:text,
+        calories: (isFinite(calories) ? calories : null),
+        estimated: !!(isFinite(calories) && wasEstimated)
+      });
       d.date = dateIso;
       state.diet[dateIso] = d;
       saveState();
-      document.getElementById("mealLogText").value = "";
-      document.getElementById("mealLogCal").value = "";
+      textInput.value = "";
+      calInput.value = "";
+      calInput.dataset.userSet = "";
+      calInput.dataset.auto = "";
       renderAll();
     });
   }
