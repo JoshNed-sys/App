@@ -617,9 +617,36 @@
           <label for="mealLogText">What you ate</label>
           <input type="text" id="mealLogText" placeholder="e.g. grilled salmon, roasted broccoli, farro" required>
         </div>
+        <div class="field">
+          <label for="mealLogCal">Calories</label>
+          <input type="number" id="mealLogCal" min="0" step="1" placeholder="optional" style="max-width:100px;">
+        </div>
         <button class="btn" type="submit">Add entry</button>
       </form>
       <div id="mealLogHost" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Calories</h2>
+        <span class="sub">Logged intake vs. your average daily burn</span>
+      </div>
+      <div class="stat-row" id="calStatRow" style="margin-bottom:18px;"></div>
+      <div class="card-head" style="margin-bottom:8px;">
+        <h3 style="font-size:15px;font-family:'Work Sans',sans-serif;font-weight:600;">Last 7 days</h3>
+      </div>
+      <div id="calBarsHost"></div>
+      <div class="card-head" style="margin-top:22px;margin-bottom:8px;">
+        <h3 style="font-size:15px;font-family:'Work Sans',sans-serif;font-weight:600;">Week over week</h3>
+      </div>
+      <div class="table-wrap"><table class="log" id="calWeekTable">
+        <thead><tr><th>Week</th><th>Days logged</th><th>Avg intake / day</th><th>Net vs. burn</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="empty" id="calWeekEmpty" style="display:none;">
+        <div class="big">🔥</div>
+        Log calories with a few meals to start seeing weekly totals.
+      </div>
     </div>
 
     <div class="card">
@@ -749,11 +776,13 @@
   ];
 
   /* ---------- state ---------- */
+  var DEFAULT_DAILY_BURN = 2741;
+
   var state = {
-    profile: { goalWeight:null },
+    profile: { goalWeight:null, dailyBurn:DEFAULT_DAILY_BURN },
     weight: [],   // {id,date,weight,note}
     labs: [],     // {id,date,total,ldl,hdl,trig,note}
-    diet: {}      // date -> {date,checklist:{},score}
+    diet: {}      // date -> {date,checklist:{},score,meals:[{id,type,text,calories}]}
   };
 
   function todayISO(){
@@ -785,6 +814,7 @@
       var parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
         state.profile = parsed.profile || { goalWeight:null };
+        if (state.profile.dailyBurn == null) state.profile.dailyBurn = DEFAULT_DAILY_BURN;
         state.weight = Array.isArray(parsed.weight) ? parsed.weight : [];
         state.labs = Array.isArray(parsed.labs) ? parsed.labs : [];
         state.diet = parsed.diet && typeof parsed.diet === "object" ? parsed.diet : {};
@@ -1050,6 +1080,165 @@
     hostEl.appendChild(wrap);
   }
 
+  /* ---------- calories ---------- */
+  function burnValue(){
+    var b = Number(state.profile.dailyBurn);
+    return (isFinite(b) && b > 0) ? b : DEFAULT_DAILY_BURN;
+  }
+  function caloriesForDay(dateIso){
+    var day = state.diet[dateIso];
+    if (!day || !Array.isArray(day.meals)) return 0;
+    return day.meals.reduce(function(sum, m){
+      var c = Number(m.calories);
+      return sum + ((isFinite(c) && c > 0) ? c : 0);
+    }, 0);
+  }
+  function dayHasCalorieData(dateIso){
+    var day = state.diet[dateIso];
+    if (!day || !Array.isArray(day.meals)) return false;
+    return day.meals.some(function(m){ var c = Number(m.calories); return isFinite(c) && c > 0; });
+  }
+  function addDaysIso(iso, n){
+    var d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    var tz = d.getTimezoneOffset();
+    var local = new Date(d.getTime() - tz*60000);
+    return local.toISOString().slice(0,10);
+  }
+  function mondayOf(iso){
+    var d = new Date(iso + "T00:00:00");
+    var dow = d.getDay();
+    var diff = (dow === 0 ? -6 : 1 - dow);
+    d.setDate(d.getDate() + diff);
+    var tz = d.getTimezoneOffset();
+    var local = new Date(d.getTime() - tz*60000);
+    return local.toISOString().slice(0,10);
+  }
+
+  function renderCalorieChart(hostId, days, burn){
+    var host = document.getElementById(hostId);
+    host.innerHTML = "";
+    var W = 640, H = 190, padL = 40, padR = 14, padT = 16, padB = 26;
+    var maxVal = burn;
+    days.forEach(function(iso){ maxVal = Math.max(maxVal, caloriesForDay(iso)); });
+    maxVal *= 1.12;
+
+    var n = days.length;
+    var slot = (W - padL - padR) / n;
+    var barW = Math.min(28, slot * 0.55);
+    var x = function(i){ return padL + slot*i + (slot - barW)/2; };
+    var y = function(v){ return padT + (1 - v/maxVal) * (H - padT - padB); };
+
+    var svg = svgEl("svg", { class:"chart", viewBox:"0 0 " + W + " " + H, role:"img", "aria-label":"Calories consumed, last 7 days" });
+
+    // horizontal gridlines (0, burn, max)
+    [0, burn].forEach(function(v){
+      var gy = y(v);
+      svg.appendChild(svgEl("line", { class:"grid-line", x1:padL, x2:W-padR, y1:gy, y2:gy }));
+    });
+
+    days.forEach(function(iso, i){
+      var val = caloriesForDay(iso);
+      var hasData = dayHasCalorieData(iso);
+      var isToday = iso === todayISO();
+      var top = hasData ? y(val) : y(0) - 3;
+      var barH = hasData ? (y(0) - y(val)) : 3;
+      svg.appendChild(svgEl("rect", {
+        x:x(i), y:top, width:barW, height:Math.max(barH,3), rx:4, ry:4,
+        fill: hasData ? (isToday ? "var(--gold)" : "var(--accent)") : "var(--line)"
+      }));
+      if (hasData) {
+        var lbl = svgEl("text", { class:"axis-label", x:x(i)+barW/2, y:top-6, "text-anchor":"middle" });
+        lbl.textContent = val >= 1000 ? (val/1000).toFixed(1)+"k" : String(val);
+        svg.appendChild(lbl);
+      }
+      var dlbl = svgEl("text", { class:"axis-label", x:x(i)+barW/2, y:H-6, "text-anchor":"middle" });
+      dlbl.textContent = new Date(iso+"T00:00:00").toLocaleDateString(undefined,{weekday:"narrow"});
+      svg.appendChild(dlbl);
+    });
+
+    // burn reference line, drawn after bars so it reads clearly on top
+    var by = y(burn);
+    svg.appendChild(svgEl("line", { class:"goal-line", x1:padL, x2:W-padR, y1:by, y2:by }));
+    var blabel = svgEl("text", { class:"axis-label", x:W-padR, y:by-6, "text-anchor":"end" });
+    blabel.textContent = "Burn ~" + Math.round(burn).toLocaleString() + "/day";
+    blabel.style.fill = "var(--ink-secondary)";
+    svg.appendChild(blabel);
+
+    host.appendChild(svg);
+  }
+
+  function renderCalorieSection(){
+    var burn = burnValue();
+    var todayIso = todayISO();
+    var hasToday = dayHasCalorieData(todayIso);
+    var todayIntake = caloriesForDay(todayIso);
+    var todayNet = burn - todayIntake;
+
+    var statHost = document.getElementById("calStatRow");
+    statHost.innerHTML =
+      '<div class="stat-tile">' +
+        '<div class="label">Today\'s intake</div>' +
+        '<div class="value">' + (hasToday ? todayIntake.toLocaleString() : "—") + '<small> kcal</small></div>' +
+        '<div class="delta flat">' + (hasToday ? "logged today" : "nothing logged yet") + '</div>' +
+      '</div>' +
+      '<div class="stat-tile">' +
+        '<div class="label">Daily burn (avg)</div>' +
+        '<div class="value" style="display:flex;align-items:baseline;gap:6px;">' +
+          '<input type="number" id="dailyBurnInput" min="0" step="1" value="' + burn + '" ' +
+            'style="width:92px;font-size:19px;font-weight:600;font-family:inherit;border:1px solid var(--line);border-radius:8px;padding:3px 6px;background:var(--bg);color:var(--ink);">' +
+          '<small>kcal</small>' +
+        '</div>' +
+        '<div class="delta flat">edit any time</div>' +
+      '</div>' +
+      '<div class="stat-tile">' +
+        '<div class="label">Today\'s net</div>' +
+        '<div class="value">' + (hasToday ? Math.abs(Math.round(todayNet)).toLocaleString() : "—") + '<small> kcal</small></div>' +
+        '<div class="delta ' + (!hasToday ? "flat" : (todayNet >= 0 ? "good" : "bad")) + '">' +
+          (hasToday ? (todayNet >= 0 ? "deficit" : "surplus") : "log intake to see") +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("dailyBurnInput").addEventListener("change", function(){
+      var v = parseFloat(this.value);
+      state.profile.dailyBurn = (isFinite(v) && v > 0) ? v : DEFAULT_DAILY_BURN;
+      saveState();
+      renderCalorieSection();
+    });
+
+    var days = [];
+    for (var i = 6; i >= 0; i--) days.push(addDaysIso(todayIso, -i));
+    renderCalorieChart("calBarsHost", days, burn);
+
+    // week-over-week
+    var loggedDates = Object.keys(state.diet).filter(dayHasCalorieData).sort();
+    var weekMap = {};
+    loggedDates.forEach(function(iso){
+      var wk = mondayOf(iso);
+      weekMap[wk] = weekMap[wk] || [];
+      weekMap[wk].push(iso);
+    });
+    var weekStarts = Object.keys(weekMap).sort().reverse().slice(0, 8);
+    var tbody = document.querySelector("#calWeekTable tbody");
+    tbody.innerHTML = "";
+    document.getElementById("calWeekEmpty").style.display = weekStarts.length ? "none" : "block";
+    weekStarts.forEach(function(wk){
+      var isoList = weekMap[wk];
+      var total = isoList.reduce(function(s, iso){ return s + caloriesForDay(iso); }, 0);
+      var avg = total / isoList.length;
+      var netPerDay = burn - avg;
+      var status = netPerDay >= 0 ? "good" : "critical";
+      var weekEnd = addDaysIso(wk, 6);
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>' + fmtDateShort(wk) + ' – ' + fmtDateShort(weekEnd) + '</td>' +
+        '<td class="num">' + isoList.length + '</td>' +
+        '<td class="num">' + Math.round(avg).toLocaleString() + ' kcal</td>' +
+        '<td><span class="pill ' + status + '">' + Math.abs(Math.round(netPerDay)).toLocaleString() + ' kcal/day ' + (netPerDay>=0?"deficit":"surplus") + '</span></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
   function renderMealLog(dateIso){
     var host = document.getElementById("mealLogHost");
     var day = state.diet[dateIso];
@@ -1062,8 +1251,9 @@
     var order = { breakfast:0, lunch:1, dinner:2, snack:3 };
     var sorted = meals.slice().sort(function(a,b){ return (order[a.type]||9) - (order[b.type]||9); });
     host.innerHTML = sorted.map(function(m){
+      var calTxt = (m.calories != null) ? (' <span style="color:var(--ink-muted);">· ' + Math.round(m.calories) + ' kcal</span>') : "";
       return '<div class="food-entry">' +
-        '<div class="fe-body"><span class="fe-meal">' + escapeHtml(m.type) + '</span><span class="fe-text">' + escapeHtml(m.text) + '</span></div>' +
+        '<div class="fe-body"><span class="fe-meal">' + escapeHtml(m.type) + '</span><span class="fe-text">' + escapeHtml(m.text) + calTxt + '</span></div>' +
         '<button class="btn danger" data-del-meal="' + m.id + '">Remove</button>' +
       '</div>';
     }).join("");
@@ -1083,6 +1273,7 @@
     var todayIso = document.getElementById("dDate").value || todayISO();
     renderChecklist(document.getElementById("dietChecklistHost"), todayIso);
     renderMealLog(todayIso);
+    renderCalorieSection();
     document.getElementById("overviewTodayDate").textContent = fmtDate(todayISO());
     renderChecklist(document.getElementById("overviewChecklistHost"), todayISO());
 
@@ -1124,7 +1315,9 @@
       var met = CHECK_ITEMS.filter(function(it){ return day.checklist && day.checklist[it.key]; }).map(function(it){ return it.title; }).join(", ") || "—";
       var meals = Array.isArray(day.meals) ? day.meals : [];
       var ate = meals.length
-        ? meals.map(function(m){ return escapeHtml(m.type) + ": " + escapeHtml(m.text); }).join("; ")
+        ? meals.map(function(m){
+            return escapeHtml(m.type) + ": " + escapeHtml(m.text) + (m.calories != null ? " (" + Math.round(m.calories) + " kcal)" : "");
+          }).join("; ")
         : "—";
       var status = (day.score||0) >= 7 ? "good" : ((day.score||0) >= 4 ? "warn" : "critical");
       var tr = document.createElement("tr");
@@ -1242,6 +1435,17 @@
       cls:"flat"
     });
 
+    var burn = burnValue();
+    var todayHasCal = dayHasCalorieData(todayISO());
+    var todayIntakeVal = caloriesForDay(todayISO());
+    var todayNetVal = burn - todayIntakeVal;
+    tiles.push({
+      label:"Today's calories",
+      value: todayHasCal ? todayIntakeVal.toLocaleString() + '<small> kcal</small>' : "—",
+      delta: todayHasCal ? (Math.abs(Math.round(todayNetVal)).toLocaleString() + " kcal " + (todayNetVal>=0?"under":"over") + " burn") : "log a meal to see",
+      cls: !todayHasCal ? "flat" : (todayNetVal>=0 ? "good" : "bad")
+    });
+
     host.innerHTML = "";
     tiles.forEach(function(t){
       var el = document.createElement("div");
@@ -1298,6 +1502,7 @@
           var parsed = JSON.parse(reader.result);
           if (!parsed || typeof parsed !== "object") throw new Error("bad file");
           state.profile = parsed.profile || { goalWeight:null };
+          if (state.profile.dailyBurn == null) state.profile.dailyBurn = DEFAULT_DAILY_BURN;
           state.weight = Array.isArray(parsed.weight) ? parsed.weight : [];
           state.labs = Array.isArray(parsed.labs) ? parsed.labs : [];
           state.diet = parsed.diet && typeof parsed.diet === "object" ? parsed.diet : {};
@@ -1379,14 +1584,17 @@
       var dateIso = document.getElementById("dDate").value || todayISO();
       var type = document.getElementById("mealLogType").value;
       var text = document.getElementById("mealLogText").value.trim();
+      var calRaw = document.getElementById("mealLogCal").value;
+      var calories = calRaw === "" ? null : parseFloat(calRaw);
       if (!text) return;
       var d = state.diet[dateIso] || { date:dateIso, checklist:{}, score:0 };
       d.meals = d.meals || [];
-      d.meals.push({ id: uid(), type:type, text:text });
+      d.meals.push({ id: uid(), type:type, text:text, calories: (isFinite(calories) ? calories : null) });
       d.date = dateIso;
       state.diet[dateIso] = d;
       saveState();
       document.getElementById("mealLogText").value = "";
+      document.getElementById("mealLogCal").value = "";
       renderAll();
     });
   }
